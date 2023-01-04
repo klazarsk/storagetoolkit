@@ -2,7 +2,7 @@
 ######################################
 #
 # Top Disk Consumer Report Generator
-# Copyright 2022-2023
+# Copyright 2022-2023 Red Hat, Inc.
 # Author: Kimberly Lazarski (klazarsk@redhat.com)
 #
 # This script eases the pain of identifying where space is consumed on
