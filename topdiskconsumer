@@ -1,0 +1,285 @@
+######################################
+#
+# Top Disk Consumer Report Generator
+# Copyright 2022-2023
+# Author: Kimberly Lazarski (klazarsk@redhat.com)
+#
+# This script eases the pain of identifying where space is consumed on
+# a given disk mount and its predecessor (also authored by Kimberly) has
+# been widely used in responding to alert tickets at a major hosting company.
+#
+# Usage: run it in any directory on a filesystem you need to diagnose. The script
+# will find the mount point of that filesystem and run from that point. This script
+# can be a good training tool for system administrators.
+#
+# This program is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see <https://www.gnu.org/licenses/>.
+
+strVersion="0.1";
+cmdLine="$0 $@  ";
+dbgEcho="false";
+dbgSleep="false";
+cmdTimeout="";
+intNumFiles="20";
+optFormat=bbcode;
+otagBold="\033[1m";
+ctagBold="\033[0m";
+optSkipDir=0
+optSkipFiles=0
+optSkipMeta=0
+optSkipOld=0
+optSkipUnlinked=0
+
+# find the mount point:
+strFsMount=$(stat --format="%m" $PWD);
+
+# find the device behind the mount point:
+strFsDev=$(findmnt -n --output=SOURCE --target=$strFsMount);
+
+
+if echo -e "2\n1\n3" | sort -rh > /dev/null 2>&1;
+    then \
+        bNewSort=1;
+fi;
+
+fnUsage()
+{
+    optFormat=ansi; fnFormat;
+    echo -e "Your command line: \n"
+    echo -e "\t $cmdLine"
+    echo -e "$otagBold\ntopdiskconsumer  -- Top Disk Consumer Report [version $strVersion]\n\n$ctagBold"
+    echo -e "This script reports on the top disk consumers to help identify where cleanup is required.\n\n"
+    echo -e "$otagBold \bUsage:\n\n$ctagBold"
+    echo -e "topdiskconsumer"
+    echo -en "When executed with no arguments, the script will identify the mount point \n"
+    echo -en "containing the current working directory,then execute the report starting \n"
+    echo -en "from the mount point, identifying and listing the top 20 largest files, the \n"
+    echo -en "top 20 largest directories, and then the top 20 largest files aged over 30 \n"
+    echo -en "days.\n\n"
+    echo -en "$otagBold \bCommand line arguments:\n\n$ctagBold"
+    echo -en "\t-f --format [format]\n"
+    echo -en "\tFormat headings with the addition of bold markup for use in ticketing system. \n"
+    echo -en "$oTagBold \bValid options:\n$cTagBold"
+    echo -en "\t\thtml - format headings with html bold tags\n"
+    echo -en "\t\tbbcode - format headings with bbcode bold tags\n"
+    echo -en "\t\tansi - [DEFAULT] format headings with ansi bold tags (for terminals and "
+    echo -en "richtext. This help screen always in ANSI format.)\n\n"
+    echo -en "\t-n --number [number]\n"
+    echo -en "\t\tReport top [number] largest files for each report section [default=20]\n\n"
+    echo -en "\t-t --timeout [duration] set a timeout for each section of the report. For \n"
+    echo -en "example, 60 (default time unit is seconds so this would timeout after 60 seconds),"
+    echo -en "30s (for a 30 second timeout), 15m (timeout after 15 minutes), 2h (timeout after\n"
+    echo -en "2 hours). Accepts same values as _timeout_ command. Please note that specifying a "
+    echo -en "timeout will result in incomplete and likely inaccurate and misleading results.\n"
+    echo -en "\t-o --skipold skip report of files aged over 30 days \n\n"
+    echo -en "\t-d --skipdir skip report of largest directories\n\n"
+    echo -en "\t-m --skipmeta omit metadata such as reserve blocks, start and end time, duration, etc.\n\n"
+    echo -en "\t-u --skipunlinked skip report of open handles to deleted files\n\n"
+    echo -en "\t-f --skipfiles skip report of largest files"
+    echo "";
+} # end of help screen
+
+fnFormat()
+{
+    if [[ "$optFormat" =~ html|bbcode|ansi ]] ; then \
+      if [ "$optFormat" == "html" ] ; then \
+        $dbgEcho "Output will be html formatted.";
+        otagBold="<strong>";individual
+        ctagBold="</strong>";
+      elif [ "$optFormat" == "bbcode" ] ; then \
+        $dbgEcho "Output will be bbcode formatted.";
+        otagBold="[b]";
+        ctagBold="[/b]";
+      elif [ "$optFormat" == "ansi" ] ; then \
+        $dbgEcho "Output will be ansi formatted.";
+        otagBold="\033[1m";
+        ctagBold="\033[0m";
+      fi;
+    else echo -ne "\nBad format specified in ";
+      fnUsage;
+      exit 1;
+    fi;
+
+}
+
+fnDebug()
+{
+    dbgEcho="echo"
+    dbgSleep="sleep"
+}
+
+
+
+
+fnMetadata()
+{
+resize > /dev/null;
+echo -e "\n#_# BEGIN REPORT";
+
+echo -e "$otagBold== Server Time at start: ==$ctagBold";
+date;
+
+echo -e "\n$otagBold== Filesystem Utilization on [ $strFsMount ]: ==$ctagBold";
+df -PTh $strFsMount | column -t;
+
+echo -e "\n$otagBold== Inode Information for [ $strFsMount ]: ==$ctagBold";
+df -PTi $strFsMount | column -t; echo -e "\n$otagBold== Storage device behind directory [ $strFsMount ]: ==$ctagBold";
+echo $strFsDev;
+$dbgSleep 3;
+
+}
+
+
+fnReserveBlock()
+{
+if blkid $strFsDev | grep -q "ext[3,4]";
+    then arrBRCalc=($(tune2fs -l $strFsDev | grep -E '^Block count|^Reserved block count' | sed 's/.*:\s*//g'));
+        echo -e "\n$otagBold== Reserve block allocation for $strFsDev: ==$ctagBold\n $(echo "scale=3; ${arrBRCalc[1]} / ${arrBRCalc[0]} * 100" | bc)%";
+fi ;
+
+$dbgEcho "finished with reserve block reporting... moving on...";
+$dbgSleep 3;
+}
+
+
+fnLargestDirs()
+{
+echo -e "\n$otagBold== $intNumFiles Largest Directories on [ $strFsMount ]: ==$ctagBold";
+if [ $bNewSort == 1 ];
+then \
+        bNewSort=1; $cmdTimeout du1 -hcx --max-depth=6 $strFsMount 2>/dev/null | sort -rh | head -$(($intNumFiles+1));
+    else \
+        $cmdTimeout du -hcx --max-depth=6 $strFsMount 2>/dev/null | grep -P '^([0-9]\.*)*G(?!.*(\btotal\b|\./$))' | sort -rnk1,1 | head -$(($intNumFiles+1)) | column -t;
+fi;
+$dbgEcho "Finished reporting largest directories. Moving on...";
+}
+
+
+fnLargestFiles()
+{
+echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ]: ==$ctagBold";
+if [ $bNewSort == 1 ];
+    then \
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du -h {}rackerlabs/recap/ + 2>&1 | sort -rh | head -$intNumFiles;
+    else \
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du {} + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f"; }{ $1=( $1 / 1024 )"M"; print;}' | column -t;
+fi;
+}
+
+
+fnLargestOldFiles()
+{
+echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ] Older Than 30 Days: ==$ctagBold";
+if [ $bNewSort == 1 ];
+    then \
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -mtime +30 -exec du -h {} + 2>&1 | sort -rh | head -$intNumFiles;
+    else \
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -mtime +30 -exec du {} + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
+fi;
+}
+
+
+fnLargestUnlinked()
+{
+echo -e "\n$otagBold== $intNumFiles Largest Deleted Files on [ $strFsMount ] With Open Handles: ==$ctagBold";
+unset arrDeletedFiles; mapfile -t arrDeletedFiles < <(lsof $strFsMount 2>/dev/null| grep '\(deleted\)' | sort -rnk7 | awk '{print ($7/1024)/1024"MB*"$1"*"$2"*"$9"*"$10"*"$11}' | uniq -f 4 | head -$intNumFiles);
+for ((i=0; i < ${#arrDeletedFiles[@]}; i++ ));
+    do \
+    if [ $i == 0 ] ;
+        then echo -e "Size*COMMAND*File Handle*Filename" ;
+    fi;
+    strFileHandle=$(echo "/proc/$(echo ${arrDeletedFiles[$i]} | awk -F "*" '{print $3}')/fd/$(ls -lh /proc/$(echo ${arrDeletedFiles[$i]} | awk -F "*" '{print $3}')/fd | grep "$(echo ${arrDeletedFiles[$i]} | awk -F "*" '{print $4}')" | awk '{print $9}')";);
+    arrDeletedFiles[$i]=$(echo "$( echo ${arrDeletedFiles[$i]} | awk  -F "*" -v filehandle=$strFileHandle '{print $1"*"$2"*"filehandle"*"$4}')"); echo ${arrDeletedFiles[$i]};
+done | column -t -s"*" ;
+}
+
+
+fnOverview()
+{
+echo -e "\n$otagBold== Disk Utilization Report for All Mounts: ==$ctagBold";
+df -hTP;
+}
+
+fnEndReport()
+{
+echo -e "\n$otagBold== Elapsed Time: ==$ctagBold"; printf '%dh:%dm:%ds\n' $(($SECONDS/3600)) $(($SECONDS%3600/60)) $(($SECONDS%60));
+echo -e "\n$otagBold== Server Time at completion: ==$ctagBold";
+date;
+echo -e "\n\n#_# END REPORT";
+}
+
+while [ "$1" != "" ] ; do \
+  case $1 in
+    -D | --debug )  fnDebug
+                    ;;
+    -F | --format ) shift
+                    optFormat="$1"
+                    fnFormat
+                    ;;
+    -n | --number ) shift
+                    intNumFiles="$1"
+                    ;;
+    -t | --timeout ) shift
+                    intTimeout="$1"
+                    cmdTimeout="timeout $intTimeout"
+                    ;;
+    -o | --skipold ) optSkipOld=1
+                    ;;
+    -d | --skipdir ) optSkipDir=1
+                    ;;
+    -m | --skipmeta ) optSkipMeta=1
+                    ;;
+    -f | --skipfiles ) optSkipFiles=1
+                    ;;
+    -u | --skipunlinked ) optSkipUnlinked=1
+                    ;;
+    -h | --help )   echo -e "\n"
+                    fnUsage
+                    exit
+                    ;;
+    * )             echo -e "\n"
+                    fnUsage
+                    exit 1
+  esac ;
+  shift ;
+done;
+
+
+if [ $optSkipMeta -ne 1 ]; then \
+    fnMetadata
+    else $dbgEcho "Skipping metadata"
+fi;
+if [ $optSkipFiles -ne 1 ] ; then \
+    fnLargestFiles
+    else $dbgEcho "Skipping largest files..."
+fi;
+if [ $optSkipDir -ne  1 ]; then \
+    fnLargestDirs
+    else $dbgEcho "Skipping largest dirs..."
+fi;
+if [ $optSkipOld -ne 1 ]; then \
+    fnLargestOldFiles
+    else $dbgEcho "Skipping old files..."
+fi;
+if [ $optSkipUnlinked -ne 1 ] ; then \
+    fnLargestUnlinked
+    else $dbgEcho "Skipping open handles to unlinked files"
+fi;
+if [ $optSkipMeta -ne 1 ]; then \
+    fnEndReport
+    else $dbgEcho "Skipping metadata"
+fi;
+exit 0;
+
+
+
+
+
+
