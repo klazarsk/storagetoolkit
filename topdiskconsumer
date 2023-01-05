@@ -55,7 +55,7 @@ fnUsage()
     optFormat=ansi; fnFormat;
     echo -e "Your command line: \n"
     echo -e "\t $cmdLine"
-    echo -e "$otagBold\ntopdiskconsumer  -- Top Disk Consumer Report [version $strVersion]\n\n$ctagBold"
+    echo -e "$otagBold\ntopdiskconsumer  -- Top Disk Consumer Report [Version $strVersion]\n\n$ctagBold"
     echo -e "This script reports on the top disk consumers to help identify where cleanup is required.\n\n"
     echo -e "$otagBold \bUsage:\n\n$ctagBold"
     echo -e "topdiskconsumer"
@@ -168,7 +168,7 @@ fnLargestFiles()
 echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ]: ==$ctagBold";
 if [ $bNewSort == 1 ];
     then \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du -h {}rackerlabs/recap/ + 2>&1 | sort -rh | head -$intNumFiles;
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du -h {} + 2>&1 | sort -rh | head -$intNumFiles;
     else \
         $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du {} + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f"; }{ $1=( $1 / 1024 )"M"; print;}' | column -t;
 fi;
