@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.1";
+strVersion="0.2";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
@@ -32,11 +32,12 @@ intNumFiles="20";
 optFormat=bbcode;
 otagBold="\033[1m";
 ctagBold="\033[0m";
-optSkipDir=0
-optSkipFiles=0
-optSkipMeta=0
-optSkipOld=0
-optSkipUnlinked=0
+optSkipDir=0;
+optSkipFiles=0;
+optSkipMeta=0;
+optSkipOld=0;
+optSkipUnlinked=0;
+unset cmdTimeout;
 
 # find the mount point:
 strFsMount=$(stat --format="%m" $PWD);
@@ -44,7 +45,7 @@ strFsMount=$(stat --format="%m" $PWD);
 # find the device behind the mount point:
 strFsDev=$(findmnt -n --output=SOURCE --target=$strFsMount);
 
-
+# Find out if we have new or old sort
 if echo -e "2\n1\n3" | sort -rh > /dev/null 2>&1;
     then \
         bNewSort=1;
@@ -53,38 +54,43 @@ fi;
 fnUsage()
 {
     optFormat=ansi; fnFormat;
-    echo -e "Your command line: \n"
-    echo -e "\t $cmdLine"
-    echo -e "$otagBold\ntopdiskconsumer  -- Top Disk Consumer Report [Version $strVersion]\n\n$ctagBold"
-    echo -e "This script reports on the top disk consumers to help identify where cleanup is required.\n\n"
-    echo -e "$otagBold \bUsage:\n\n$ctagBold"
-    echo -e "topdiskconsumer"
-    echo -en "When executed with no arguments, the script will identify the mount point \n"
-    echo -en "containing the current working directory,then execute the report starting \n"
-    echo -en "from the mount point, identifying and listing the top 20 largest files, the \n"
-    echo -en "top 20 largest directories, and then the top 20 largest files aged over 30 \n"
-    echo -en "days.\n\n"
-    echo -en "$otagBold \bCommand line arguments:\n\n$ctagBold"
-    echo -en "\t-f --format [format]\n"
-    echo -en "\tFormat headings with the addition of bold markup for use in ticketing system. \n"
-    echo -en "$oTagBold \bValid options:\n$cTagBold"
-    echo -en "\t\thtml - format headings with html bold tags\n"
-    echo -en "\t\tbbcode - format headings with bbcode bold tags\n"
-    echo -en "\t\tansi - [DEFAULT] format headings with ansi bold tags (for terminals and "
-    echo -en "richtext. This help screen always in ANSI format.)\n\n"
-    echo -en "\t-n --number [number]\n"
-    echo -en "\t\tReport top [number] largest files for each report section [default=20]\n\n"
-    echo -en "\t-t --timeout [duration] set a timeout for each section of the report. For \n"
-    echo -en "example, 60 (default time unit is seconds so this would timeout after 60 seconds),"
-    echo -en "30s (for a 30 second timeout), 15m (timeout after 15 minutes), 2h (timeout after\n"
-    echo -en "2 hours). Accepts same values as _timeout_ command. Please note that specifying a "
-    echo -en "timeout will result in incomplete and likely inaccurate and misleading results.\n"
-    echo -en "\t-o --skipold skip report of files aged over 30 days \n\n"
-    echo -en "\t-d --skipdir skip report of largest directories\n\n"
-    echo -en "\t-m --skipmeta omit metadata such as reserve blocks, start and end time, duration, etc.\n\n"
-    echo -en "\t-u --skipunlinked skip report of open handles to deleted files\n\n"
-    echo -en "\t-f --skipfiles skip report of largest files"
-    echo "";
+    echo -e "Your command line: \n";
+    echo -e "\t $cmdLine";
+    echo -e "$otagBold\ntopdiskconsumer  -- Top Disk Consumer Report [Version $strVersion]\n\n$ctagBold";
+    echo -e "This script reports on the top disk consumers to help identify where cleanup is required.\n\n";
+    echo -e "$otagBold \bUsage:$ctagBold\n\n";
+    echo -e "$otagBold \btopdiskconsumer$ctagBold\n";
+    echo -en "\tWhen executed with no arguments, the script will identify the mount point \n";
+    echo -en "\tcontaining the current working directory,then execute the report starting \n";
+    echo -en "\tfrom the mount point, identifying and listing the top 20 largest files, the \n";
+    echo -en "\ttop 20 largest directories, and then the top 20 largest files aged over 30 \n";
+    echo -en "\tdays.\n\n";
+    echo -en "$otagBold \bCommand line arguments:\n\n$ctagBold";
+    echo -en "\t-f --format [format]\n";
+    echo -en "\t\tFormat headings with the addition of bold markup for use in ticketing system. \n\n";
+    echo -en "\t$otagBold \bValid options:$ctagBold\n";
+    echo -en "\t\thtml - format headings with html bold tags\n";
+    echo -en "\t\t bbcode - format headings with bbcode bold tags\n";
+    echo -en "\t\t ansi - [DEFAULT] format headings with ansi bold tags {for terminals and \n";
+    echo -en "\t\t richtext. This help screen always in ANSI format.}\n\n";
+    echo -en "\t-l --limit [number]\n";
+    echo -en "\t\tReport limited to top [number] largest files for each report section [default=20]\n\n";
+    echo -en "\t-t --timeout [duration] set a timeout for each section of the report. For \n";
+    echo -en "\t\t example, 60 default time unit is seconds so this would timeout after 60 seconds,\n";
+    echo -en "\t\t 30s (for a 30 second timeout), 15m (timeout after 15 minutes), 2h (timeout after\n";
+    echo -en "\t\t2 hours). Accepts same values as _timeout_ command. Please note that specifying a \n";
+    echo -en "\t\ttimeout will result in incomplete and likely inaccurate and misleading results.\n";
+    echo -en "\t-o --skipold skip report of files aged over 30 days \n\n";
+    echo -en "\t-d --skipdir skip report of largest directories\n\n";
+    echo -en "\t-m --skipmeta omit metadata such as reserve blocks, start and end time, duration, etc.\n\n";
+    echo -en "\t-u --skipunlinked skip report of open handles to deleted files\n\n";
+    echo -en "\t-f --skipfiles skip report of largest files\n\n";
+    echo -en "Please note: the Top [number] Directories report module includes the \"total\" size. This is intentional.\n";
+    echo -en "This script can only access files that you have access to; either use sudo or root \n";
+    echo -en "to execute it. You could alternatively chmod the script with suid rights, but that may be a\n";
+    echo -en "security risk in finance, medical, and government environments by revealing confidential\n";
+    echo -en "filenames to unprivileged users. Choose to suid with care.";
+    echo -e "\n";
 } # end of help screen
 
 fnFormat()
@@ -92,7 +98,7 @@ fnFormat()
     if [[ "$optFormat" =~ html|bbcode|ansi ]] ; then \
       if [ "$optFormat" == "html" ] ; then \
         $dbgEcho "Output will be html formatted.";
-        otagBold="<strong>";individual
+        otagBold="<strong>";--limit
         ctagBold="</strong>";
       elif [ "$optFormat" == "bbcode" ] ; then \
         $dbgEcho "Output will be bbcode formatted.";
@@ -112,8 +118,8 @@ fnFormat()
 
 fnDebug()
 {
-    dbgEcho="echo"
-    dbgSleep="sleep"
+    dbgEcho="echo";
+    dbgSleep="sleep";
 }
 
 
@@ -121,8 +127,8 @@ fnDebug()
 
 fnMetadata()
 {
-resize > /dev/null;
-echo -e "\n#_# BEGIN REPORT";
+resize 2>&1 > /dev/null;
+echo -e "#_# BEGIN REPORT";
 
 echo -e "$otagBold== Server Time at start: ==$ctagBold";
 date;
@@ -155,9 +161,9 @@ fnLargestDirs()
 echo -e "\n$otagBold== $intNumFiles Largest Directories on [ $strFsMount ]: ==$ctagBold";
 if [ $bNewSort == 1 ];
 then \
-        bNewSort=1; $cmdTimeout du1 -hcx --max-depth=6 $strFsMount 2>/dev/null | sort -rh | head -$(($intNumFiles+1));
+        bNewSort=1; $cmdTimeout du -hcx --max-depth=6 $strFsMount 2>/dev/null | sort -rh | head -n $(($intNumFiles+1));
     else \
-        $cmdTimeout du -hcx --max-depth=6 $strFsMount 2>/dev/null | grep -P '^([0-9]\.*)*G(?!.*(\btotal\b|\./$))' | sort -rnk1,1 | head -$(($intNumFiles+1)) | column -t;
+        $cmdTimeout du -hcx --max-depth=6 $strFsMount 2>/dev/null | grep -P '^([0-9]\.*)*G(?!.*(\btotal\b|\./$))' | sort -rnk1,1 | head -n $(($intNumFiles+1)) | column -t;
 fi;
 $dbgEcho "Finished reporting largest directories. Moving on...";
 }
@@ -168,9 +174,9 @@ fnLargestFiles()
 echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ]: ==$ctagBold";
 if [ $bNewSort == 1 ];
     then \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du -h {} + 2>&1 | sort -rh | head -$intNumFiles;
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du -h {} + 2>&1 | sort -rh | head -n $intNumFiles;
     else \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du {} + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f"; }{ $1=( $1 / 1024 )"M"; print;}' | column -t;
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du {} + 2>&1 | sort -rnk1,1 | head -n $intNumFiles | awk 'BEGIN{ CONVFMT="%.2f"; }{ $1=( $1 / 1024 )"M"; print;}' | column -t;
 fi;
 }
 
@@ -182,8 +188,8 @@ if [ $bNewSort == 1 ];
     then \
         $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -mtime +30 -exec du -h {} + 2>&1 | sort -rh | head -$intNumFiles;
     else \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -mtime +30 -exec du {} + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
-fi;
+        $cmdTimeout find $strFsMount -mount -ignore_readdir_bNewSortrace -type f -mtime +30 -exec du {} + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
+    fi;
 }
 
 
@@ -220,33 +226,34 @@ while [ "$1" != "" ] ; do \
   case $1 in
     -D | --debug )  fnDebug
                     ;;
-    -F | --format ) shift
-                    optFormat="$1"
-                    fnFormat
+    -F | --format ) shift;
+                    optFormat="$1";
+                    fnFormat;
                     ;;
-    -n | --number ) shift
-                    intNumFiles="$1"
+    -l | --limit ) shift
+                    intNumFiles="$1";
+                    if ! [[ $1 =~ ^[0-9]+$ ]] ; then echo -ne "$otagBold\n  Error: --limit must be followed by a natural number (an integer >= 1). $intNumFiles is invalid $ctagBold; " ; fnUsage; exit 1; fi;
                     ;;
     -t | --timeout ) shift
-                    intTimeout="$1"
-                    cmdTimeout="timeout $intTimeout"
+                    intTimeout="$1";
+                    cmdTimeout="timeout $intTimeout";
                     ;;
-    -o | --skipold ) optSkipOld=1
+    -o | --skipold ) optSkipOld=1;
                     ;;
-    -d | --skipdir ) optSkipDir=1
+    -d | --skipdir ) optSkipDir=1;
                     ;;
-    -m | --skipmeta ) optSkipMeta=1
+    -m | --skipmeta ) optSkipMeta=1;
                     ;;
-    -f | --skipfiles ) optSkipFiles=1
+    -f | --skipfiles ) optSkipFiles=1;
                     ;;
-    -u | --skipunlinked ) optSkipUnlinked=1
+    -u | --skipunlinked ) optSkipUnlinked=1;
                     ;;
-    -h | --help )   echo -e "\n"
-                    fnUsage
-                    exit
+    -h | --help )   echo -e "\n";
+                    fnUsage;
+                    exit;
                     ;;
-    * )             echo -e "\n"
-                    fnUsage
+    * )             echo -e "\n";
+                    fnUsage;
                     exit 1
   esac ;
   shift ;
@@ -254,33 +261,28 @@ done;
 
 
 if [ $optSkipMeta -ne 1 ]; then \
-    fnMetadata
-    else $dbgEcho "Skipping metadata"
+    fnMetadata;
+    else $dbgEcho "Skipping metadata";
 fi;
 if [ $optSkipFiles -ne 1 ] ; then \
-    fnLargestFiles
-    else $dbgEcho "Skipping largest files..."
+    fnLargestFiles;
+    else $dbgEcho "Skipping largest files...";
 fi;
 if [ $optSkipDir -ne  1 ]; then \
-    fnLargestDirs
-    else $dbgEcho "Skipping largest dirs..."
+    fnLargestDirs;
+    else $dbgEcho "Skipping largest dirs...";
 fi;
 if [ $optSkipOld -ne 1 ]; then \
-    fnLargestOldFiles
-    else $dbgEcho "Skipping old files..."
+    fnLargestOldFiles;
+    else $dbgEcho "Skipping old files...";
 fi;
 if [ $optSkipUnlinked -ne 1 ] ; then \
-    fnLargestUnlinked
-    else $dbgEcho "Skipping open handles to unlinked files"
+    fnLargestUnlinked;
+    else $dbgEcho "Skipping open handles to unlinked files";
 fi;
 if [ $optSkipMeta -ne 1 ]; then \
-    fnEndReport
-    else $dbgEcho "Skipping metadata"
+    fnEndReport;
+    else $dbgEcho "Skipping metadata";
 fi;
 exit 0;
-
-
-
-
-
 
