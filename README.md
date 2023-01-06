@@ -17,7 +17,7 @@ For now I'm releasing only the one utility, with more to come... eventually.
   * Implement bare output (no heading) option for enablement of custom reporting scripts, ticketing systems, etc.
   * Create manpage
 * Long term 
-  * Build storagetoolkit rpm (I didn't see the need with the standalone file; making an rpm for a single file is kind of like using a hydraulic press to mash potatoes. KISS.)
+  * Build storagetoolkit rpm (I didn't see the need with the standalone file; making an rpm for a single file is kind of like using a hydraulic press to mash potatoes, but it does make more sense with a manpage, and even more so when the other utilities are refactored and published. KISS.)
   * Port to python (this is a longer-term goal)
 
 This script reports on the top disk consumers to help identify where cleanup is required.
