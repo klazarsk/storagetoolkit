@@ -1,5 +1,4 @@
-# storagetoolkit
-Kim's storage toolkit
+## Kim's Storage Toolkit
 
 Hi friends! Those who know me or worked with me or my colleagues may recall that top disk consumer report I wrote a few years ago and maintained ever since - it was poorly-coded as it grew organically, tacking on each feature as I needed to gather info to shove into a ticket. Since I primarily used it at a certain hosting company whose ticketing system supported bbcode and donated it for free usage and dissemination, it was at the time hard-coded for bbcode markup. 
 
@@ -9,13 +8,22 @@ It can be tremendously helpful as a training tool for junior sysadmins as well a
 
 For now I'm releasing only the one utility, with more to come... eventually.
 
-topdiskconsumer  -- Top Disk Consumer Report [Version 0.2]
+# topdiskconsumer  -- Top Disk Consumer Report [Version 0.2]
 
+## ToDo: 
+
+* Short Term
+  * Change report options to be exclusive rather than having to skip all unwanted reports individually
+  * Implement bare output (no heading) option for enablement of custom reporting scripts, ticketing systems, etc.
+  * Create manpage
+* Long term 
+  * Build storagetoolkit rpm (I didn't see the need with the standalone file; making an rpm for a single file is kind of like using a hydraulic press to mash potatoes. KISS.)
+  * Port to python (this is a longer-term goal)
 
 This script reports on the top disk consumers to help identify where cleanup is required.
 
 
-Usage:
+## Usage:
 
 
 topdiskconsumer
