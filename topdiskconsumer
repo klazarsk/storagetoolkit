@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.2";
+strVersion="0.3";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
@@ -38,12 +38,8 @@ optSkipMeta=0;
 optSkipOld=0;
 optSkipUnlinked=0;
 unset cmdTimeout;
+unset optPath;
 
-# find the mount point:
-strFsMount=$(stat --format="%m" $PWD);
-
-# find the device behind the mount point:
-strFsDev=$(findmnt -n --output=SOURCE --target=$strFsMount);
 
 # Find out if we have new or old sort
 if echo -e "2\n1\n3" | sort -rh > /dev/null 2>&1;
@@ -73,6 +69,9 @@ fnUsage()
     echo -en "\t\t bbcode - format headings with bbcode bold tags\n";
     echo -en "\t\t ansi - [DEFAULT] format headings with ansi bold tags {for terminals and \n";
     echo -en "\t\t richtext. This help screen always in ANSI format.}\n\n";
+    echo -en "\t-p --path [path] explicitly set path to run from (it will identify the mount \n"
+    echo -en "\thosting the specified directory and run from that mount point.";
+    echo -en "\t\t"
     echo -en "\t-l --limit [number]\n";
     echo -en "\t\tReport limited to top [number] largest files for each report section [default=20]\n\n";
     echo -en "\t-t --timeout [duration] set a timeout for each section of the report. For \n";
@@ -134,11 +133,11 @@ echo -e "$otagBold== Server Time at start: ==$ctagBold";
 date;
 
 echo -e "\n$otagBold== Filesystem Utilization on [ $strFsMount ]: ==$ctagBold";
-df -PTh $strFsMount | column -t;
+df -PTh "$strFsMount" | column -t;
 
 echo -e "\n$otagBold== Inode Information for [ $strFsMount ]: ==$ctagBold";
-df -PTi $strFsMount | column -t; echo -e "\n$otagBold== Storage device behind directory [ $strFsMount ]: ==$ctagBold";
-echo $strFsDev;
+df -PTi "$strFsMount" | column -t; echo -e "\n$otagBold== Storage device behind directory [ $strFsMount ]: ==$ctagBold";
+echo "$strFsDev";
 $dbgSleep 3;
 
 }
@@ -161,9 +160,9 @@ fnLargestDirs()
 echo -e "\n$otagBold== $intNumFiles Largest Directories on [ $strFsMount ]: ==$ctagBold";
 if [ $bNewSort == 1 ];
 then \
-        bNewSort=1; $cmdTimeout du -hcx --max-depth=6 $strFsMount 2>/dev/null | sort -rh | head -n $(($intNumFiles+1));
+        bNewSort=1; $cmdTimeout du -hcx --max-depth=6 "$strFsMount" 2>/dev/null | sort -rh | head -n $(($intNumFiles+1));
     else \
-        $cmdTimeout du -hcx --max-depth=6 $strFsMount 2>/dev/null | grep -P '^([0-9]\.*)*G(?!.*(\btotal\b|\./$))' | sort -rnk1,1 | head -n $(($intNumFiles+1)) | column -t;
+        $cmdTimeout du -hcx --max-depth=6 "$strFsMount" 2>/dev/null | grep -P '^([0-9]\.*)*G(?!.*(\btotal\b|\./$))' | sort -rnk1,1 | head -n $(($intNumFiles+1)) | column -t;
 fi;
 $dbgEcho "Finished reporting largest directories. Moving on...";
 }
@@ -174,9 +173,9 @@ fnLargestFiles()
 echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ]: ==$ctagBold";
 if [ $bNewSort == 1 ];
     then \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du -h {} + 2>&1 | sort -rh | head -n $intNumFiles;
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_race -type f -exec du -h "{}" + 2>&1 | sort -rh | head -n $intNumFiles;
     else \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -exec du {} + 2>&1 | sort -rnk1,1 | head -n $intNumFiles | awk 'BEGIN{ CONVFMT="%.2f"; }{ $1=( $1 / 1024 )"M"; print;}' | column -t;
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_race -type f -exec du "{}" + 2>&1 | sort -rnk1,1 | head -n $intNumFiles | awk 'BEGIN{ CONVFMT="%.2f"; }{ $1=( $1 / 1024 )"M"; print;}' | column -t;
 fi;
 }
 
@@ -186,9 +185,9 @@ fnLargestOldFiles()
 echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ] Older Than 30 Days: ==$ctagBold";
 if [ $bNewSort == 1 ];
     then \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_race -type f -mtime +30 -exec du -h {} + 2>&1 | sort -rh | head -$intNumFiles;
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_race -type f -mtime +30 -exec du -h "{}" + 2>&1 | sort -rh | head -$intNumFiles;
     else \
-        $cmdTimeout find $strFsMount -mount -ignore_readdir_bNewSortrace -type f -mtime +30 -exec du {} + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_bNewSortrace -type f -mtime +30 -exec du "{}" + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
     fi;
 }
 
@@ -230,21 +229,24 @@ while [ "$1" != "" ] ; do \
                     optFormat="$1";
                     fnFormat;
                     ;;
-    -l | --limit ) shift
+    -d | --skipdir ) optSkipDir=1;
+                    ;;
+    -f | --skipfiles ) optSkipFiles=1;
+                    ;;
+    -l | --limit ) shift;
                     intNumFiles="$1";
                     if ! [[ $1 =~ ^[0-9]+$ ]] ; then echo -ne "$otagBold\n  Error: --limit must be followed by a natural number (an integer >= 1). $intNumFiles is invalid $ctagBold; " ; fnUsage; exit 1; fi;
                     ;;
-    -t | --timeout ) shift
-                    intTimeout="$1";
-                    cmdTimeout="timeout $intTimeout";
+    -m | --skipmeta ) optSkipMeta=1;
                     ;;
     -o | --skipold ) optSkipOld=1;
                     ;;
-    -d | --skipdir ) optSkipDir=1;
+    -p | --path    ) shift;
+                     optPath="$1";
                     ;;
-    -m | --skipmeta ) optSkipMeta=1;
-                    ;;
-    -f | --skipfiles ) optSkipFiles=1;
+    -t | --timeout ) shift;
+                    intTimeout="$1";
+                    cmdTimeout="timeout $intTimeout";
                     ;;
     -u | --skipunlinked ) optSkipUnlinked=1;
                     ;;
@@ -252,12 +254,40 @@ while [ "$1" != "" ] ; do \
                     fnUsage;
                     exit;
                     ;;
-    * )             echo -e "\n";
+    * )             echo -en "$otagBold \n\tI couldn't understand your command. Please note if you specified a command with spaces \n"
+                    echo -e "\t \or extended ASCII, you will need to escape those characters or use quotes around the path.\n$ctagBold";
                     fnUsage;
                     exit 1
   esac ;
   shift ;
 done;
+
+# find the mount point:
+if [[ ! -v optPath ]]; then \
+    $dbgEcho "optPath is not set, so setting path automagically."
+    $dbgEcho "Current working directory = $PWD"
+        strFsMount="$(stat --format="%m" "$PWD")";
+        # find the device behind the mount point:
+        strFsDev="$(findmnt -n --output=SOURCE --target="$strFsMount")";
+        $dbgEcho "strFsDev=$strFsDev";
+        $dbgEcho "strFsMount=$strFsMount";
+        $dbgSleep 5;
+else \
+    if [[ ! -d "$optPath" ]]; then \
+        echo -e "You specified \"$optPath\" which is not extant.";
+        $dbgSleep 5;
+        fnUsage;
+        exit 1;
+    else \
+        $dbgEcho "You specified the path \"$optPath\", which is extant. OK.";
+        strFsMount="$(stat --format="%m" "$optPath")";
+        # find the device behind the mount point:
+        strFsDev="$(findmnt -n --output=SOURCE --target="$strFsMount")";
+        $dbgEcho "The filesystem behind \"$optPath\" is \"$strFsMount\"; running from $strFsMount.";
+    fi;
+fi;
+
+
 
 
 if [ $optSkipMeta -ne 1 ]; then \

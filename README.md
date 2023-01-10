@@ -37,7 +37,8 @@ Command line arguments:
 		 ansi - [DEFAULT] format headings with ansi bold tags {for terminals and 
 		 richtext. This help screen always in ANSI format.}
 
-	-l --limit [number]
+	-p --path [path] explicitly set path to run from (it will identify the mount 
+	hosting the specified directory and run from that mount point.			-l --limit [number]
 		Report limited to top [number] largest files for each report section [default=20]
 
 	-t --timeout [duration] set a timeout for each section of the report. For 
@@ -60,3 +61,4 @@ This script can only access files that you have access to; either use sudo or ro
 to execute it. You could alternatively chmod the script with suid rights, but that may be a
 security risk in finance, medical, and government environments by revealing confidential
 filenames to unprivileged users. Choose to suid with care.
+
