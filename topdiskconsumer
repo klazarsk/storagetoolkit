@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.3";
+strVersion="0.4";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
@@ -32,6 +32,9 @@ intNumFiles="20";
 optFormat=bbcode;
 otagBold="\033[1m";
 ctagBold="\033[0m";
+otagRed='\033[0;31m'
+otagRevRed='\e[0;101m'
+ctagNc='\033[0m'
 optSkipDir=0;
 optSkipFiles=0;
 optSkipMeta=0;
@@ -84,6 +87,7 @@ fnUsage()
     echo -en "\t-m --skipmeta omit metadata such as reserve blocks, start and end time, duration, etc.\n\n";
     echo -en "\t-u --skipunlinked skip report of open handles to deleted files\n\n";
     echo -en "\t-f --skipfiles skip report of largest files\n\n";
+    echo -en "\t-t --temp [directory] Specify an an alternate temp directory when /tmp is too full for temp files.\n\n";
     echo -en "Please note: the Top [number] Directories report module includes the \"total\" size. This is intentional.\n";
     echo -en "This script can only access files that you have access to; either use sudo or root \n";
     echo -en "to execute it. You could alternatively chmod the script with suid rights, but that may be a\n";
@@ -221,6 +225,24 @@ date;
 echo -e "\n\n#_# END REPORT";
 }
 
+
+fnSetTemp()
+{
+# Is there enough space on the specified --temp directory for sort to run?
+if [ $(df --output=avail $strTemp | grep -v Avail) -lt  100000 ] ; then \
+    if [[ -v TMPDIR ]]; then echo "TMPDIR Already set, backing it up."; strBkTMPDIR="$TMPDIR"; fi;
+    echo -e "\a$otagRed\nThere may not be enough space in $otagBold \b$strTemp \b$ctagBold \b$otagRed for $otagBold \bsort$ctagBold \b$otagRed to complete; there is only $(df -h --output=avail $strTemp | grep -v Avail) free; please choose a different location. $ctagNc" ;
+    echo -e "\nThe script will continue after a 15-second pause but the reports may be incomplete.  ";
+    export TMPDIR="$strTemp";
+    $dbgEcho "$(env | grep TMPDIR)";
+    sleep 15;
+else echo -e "$otagBold \busing $strTemp as an alternate temp directory." ;
+    if [[ -v TMPDIR ]]; then echo "TMPDIR Already set, backing it up."; strBkTMPDIR="$TMPDIR"; fi;
+        export TMPDIR="$strTemp";
+        $dbgEcho "$(env | grep TMPDIR)";
+fi ;
+}
+
 while [ "$1" != "" ] ; do \
   case $1 in
     -D | --debug )  fnDebug
@@ -253,6 +275,14 @@ while [ "$1" != "" ] ; do \
     -h | --help )   echo -e "\n";
                     fnUsage;
                     exit;
+                    ;;
+    -t | --temp )   shift;
+                    strTemp="$1";
+                    if [[ ! -d "$strTemp" ]] ; then \
+                        echo -e "\a\n$otagBold $otagRevRed>>> \t \bSpecified temp directory "$strTemp" does not exist. Please check and correct the path.$ctagBold";
+                        exit 1;
+                    fi;
+                    fnSetTemp;
                     ;;
     * )             echo -en "$otagBold \n\tI couldn't understand your command. Please note if you specified a command with spaces \n"
                     echo -e "\t \or extended ASCII, you will need to escape those characters or use quotes around the path.\n$ctagBold";
@@ -287,7 +317,15 @@ else \
     fi;
 fi;
 
-
+# Is there enough space for sort to run?
+if [[ ! -v strTemp ]]; then \
+    if [ $(df --output=avail /tmp | grep -v Avail) -lt  100000 ] ; then \
+        echo -e "\a\a$otagRed\nThere may not be enough space in /tmp for $otagBold \bsort$ctagBold \b$otagRed \b\bto complete; there is only $(df -h --output=avail /tmp | grep -v Avail) free; consider leveraging the --temp option. $ctagNc" ;
+        echo -e "\nThe script will continue after a 15-second pause but the reports may be incomplete.";
+        sleep 15;
+        export TMPDIR="$strTemp";
+    fi ;
+fi;
 
 
 if [ $optSkipMeta -ne 1 ]; then \
@@ -314,5 +352,9 @@ if [ $optSkipMeta -ne 1 ]; then \
     fnEndReport;
     else $dbgEcho "Skipping metadata";
 fi;
+if [[ -v strBkTMPDIR ]]; then export TMPDIR="$strBkTMPDIR"; else \
+    unset TMPDIR;
+fi;
+
 exit 0;
 
