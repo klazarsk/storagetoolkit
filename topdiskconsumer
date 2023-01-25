@@ -73,21 +73,22 @@ fnUsage()
     echo -en "\t\t ansi - [DEFAULT] format headings with ansi bold tags {for terminals and \n";
     echo -en "\t\t richtext. This help screen always in ANSI format.}\n\n";
     echo -en "\t-p --path [path] explicitly set path to run from (it will identify the mount \n"
-    echo -en "\thosting the specified directory and run from that mount point.";
-    echo -en "\t\t"
+    echo -en "\t\t hosting the specified directory and run from that mount point.";
+    echo -en "\t\t\n\n"
     echo -en "\t-l --limit [number]\n";
-    echo -en "\t\tReport limited to top [number] largest files for each report section [default=20]\n\n";
+    echo -en "\t\t Report limited to top [number] largest files for each report section [default=20]\n\n";
     echo -en "\t-t --timeout [duration] set a timeout for each section of the report. For \n";
     echo -en "\t\t example, 60 default time unit is seconds so this would timeout after 60 seconds,\n";
     echo -en "\t\t 30s (for a 30 second timeout), 15m (timeout after 15 minutes), 2h (timeout after\n";
     echo -en "\t\t2 hours). Accepts same values as _timeout_ command. Please note that specifying a \n";
-    echo -en "\t\ttimeout will result in incomplete and likely inaccurate and misleading results.\n";
+    echo -en "\t\t timeout will result in incomplete and likely inaccurate and misleading results.\n\n   ";
     echo -en "\t-o --skipold skip report of files aged over 30 days \n\n";
     echo -en "\t-d --skipdir skip report of largest directories\n\n";
     echo -en "\t-m --skipmeta omit metadata such as reserve blocks, start and end time, duration, etc.\n\n";
     echo -en "\t-u --skipunlinked skip report of open handles to deleted files\n\n";
     echo -en "\t-f --skipfiles skip report of largest files\n\n";
-    echo -en "\t-t --temp [directory] Specify an an alternate temp directory when /tmp is too full for temp files.\n\n";
+    echo -en "\t-t --temp [directory] Specify an an alternate temp directory when /tmp is too full for temp\n";
+    echo -en "\t\t files to allow report generation.\n\n";
     echo -en "Please note: the Top [number] Directories report module includes the \"total\" size. This is intentional.\n";
     echo -en "This script can only access files that you have access to; either use sudo or root \n";
     echo -en "to execute it. You could alternatively chmod the script with suid rights, but that may be a\n";
