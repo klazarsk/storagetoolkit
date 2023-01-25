@@ -1,4 +1,4 @@
-# Kims Storage Toolkits
+# Kims Storage Toolkit
 
 ## Documentation
 
