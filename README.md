@@ -4,7 +4,7 @@
 
 This is the very first draft of the documentation; among further refinements will be documentation updates. This is simply a copy and paste of the help screen:
 
-topdiskconsumer  -- Top Disk Consumer Report [version 0.1]
+topdiskconsumer  -- Top Disk Consumer Report [version 0.4]
 
 This script reports on the top disk consumers to help identify where cleanup is required.
 
