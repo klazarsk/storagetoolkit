@@ -18,22 +18,41 @@ top 20 largest directories, and then the top 20 largest files aged over 30
 days.
 
 ```
+Usage:
+
+
+topdiskconsumer
+
+	When executed with no arguments, the script will identify the mount point
+	containing the current working directory,then execute the report starting
+	from the mount point, identifying and listing the top 20 largest files, the
+	top 20 largest directories, and then the top 20 largest files aged over 30
+	days.
+
 Command line arguments:
 
 	-f --format [format]
-	Format headings with the addition of bold markup for use in ticketing system. 
-Valid options:
+		Format headings with the addition of bold markup for use in ticketing system.
+
+	Valid options:
 		html - format headings with html bold tags
-		bbcode - format headings with bbcode bold tags
-		ansi - [DEFAULT] format headings with ansi bold tags (for terminals and richtext. This help screen always in ANSI format.)
+		 bbcode - format headings with bbcode bold tags
+		 ansi - [DEFAULT] format headings with ansi bold tags {for terminals and
+		 richtext. This help screen always in ANSI format.}
 
-	-n --number [number]
-		Report top [number] largest files for each report section [default=20]
+	-p --path [path] explicitly set path to run from (it will identify the mount
+		 hosting the specified directory and run from that mount point.
 
-	-t --timeout [duration] set a timeout for each section of the report. For 
-example, 60 (default time unit is seconds so this would timeout after 60 seconds),30s (for a 30 second timeout), 15m (timeout after 15 minutes), 2h (timeout after
-2 hours). Accepts same values as _timeout_ command. Please note that specifying a timeout will result in incomplete and likely inaccurate and misleading results.
-	-o --skipold skip report of files aged over 30 days 
+	-l --limit [number]
+		 Report limited to top [number] largest files for each report section [default=20]
+
+	-t --timeout [duration] set a timeout for each section of the report. For
+		 example, 60 default time unit is seconds so this would timeout after 60 seconds,
+		 30s (for a 30 second timeout), 15m (timeout after 15 minutes), 2h (timeout after
+		2 hours). Accepts same values as _timeout_ command. Please note that specifying a
+		 timeout will result in incomplete and likely inaccurate and misleading results.
+
+   	-o --skipold skip report of files aged over 30 days
 
 	-d --skipdir skip report of largest directories
 
@@ -42,6 +61,16 @@ example, 60 (default time unit is seconds so this would timeout after 60 seconds
 	-u --skipunlinked skip report of open handles to deleted files
 
 	-f --skipfiles skip report of largest files
+
+	-t --temp [directory] Specify an an alternate temp directory when /tmp is too full for temp
+		 files to allow report generation.
+
+Please note: the Top [number] Directories report module includes the "total" size. This is intentional.
+This script can only access files that you have access to; either use sudo or root
+to execute it. You could alternatively chmod the script with suid rights, but that may be a
+security risk in finance, medical, and government environments by revealing confidential
+filenames to unprivileged users. Choose to suid with care.
+
 ```
 
 ## _topdiskconsumer_ Known Issues/todo list
