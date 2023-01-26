@@ -1,4 +1,4 @@
-# Kims Storage Toolkits
+# Kims Storage Toolkit
 
 ## Documentation
 
@@ -93,7 +93,7 @@ under live databases on production servers.
 
 This tool is not intended to be an analog to the proprietary tool "ccleaner"
 
-I'm intending this tool to be used as a read-only tool for aid in diagnosing issues, and with the suggestion
+I'm intending this tool to be used as a _read-only_ tool for aid in diagnosing issues, and with the suggestion
 of enabling the suid bit, it would be a mistake to allow to go ahead and assume it is safe to clean anything,
 even if it is just "/tmp' and '/home/*/./cache' and '/home/*/.local'; there are numerous security concerns,
 risk of interrupting production services, or depending on silly user tricks, completely destroying a system.
