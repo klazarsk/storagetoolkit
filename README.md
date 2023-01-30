@@ -94,3 +94,7 @@ under live databases on production servers.
 ## Update: 
 
 After discussion with a colleague and mulling it over, as a solution to mitigate risk but also allow cleanup, I've decided provide a config file spec to allow for automated cleanup while seeking to avert gross mis-use of the utility by junior administrators. This will allow for usage of the script in financial institutions hosted at companies where support are restricted to "read-only" actions while also enabling automated cleanup on workstations and dev/staging/preprod environments.
+
+# Roadmap 
+
+Coming March 2023
