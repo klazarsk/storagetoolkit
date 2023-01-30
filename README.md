@@ -78,6 +78,9 @@ filenames to unprivileged users. Choose to suid with care.
 - [ ] needs a man page
 - [ ] needs an rpm (will do this after writing the man pages)
 
+P1 defects:
+- [ ] largest deleted open files: Does not work on Ubuntu 20: listing open file handles doesn't work on Ubuntu (am currently in Dallas for Red Hat tech exchange will review issue on my Ubuntu VMs week starting Feb 05). Cause: lsof distributed with Ubuntu displays different format by default. Plan to reimplement test on RHEL, Ubuntu, and (OpenSUSE) Tumbleweed. Previously tested on RHEL and older release of Tumbleweed and originally developed one-liner on Tumbleweed. 
+
 
 # Red Hat Sysadmin blog
 
