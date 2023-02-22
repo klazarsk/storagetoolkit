@@ -131,7 +131,7 @@ fnDebug()
 
 fnMetadata()
 {
-resize 2>&1 > /dev/null;
+command -v resize 2>&1 > /dev/null;
 echo -e "#_# BEGIN REPORT";
 
 echo -e "$otagBold== Server Time at start: ==$ctagBold";
