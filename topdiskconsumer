@@ -50,6 +50,10 @@ if echo -e "2\n1\n3" | sort -rh > /dev/null 2>&1;
         bNewSort=1;
 fi;
 
+# test for resize
+# By the way headless systems very often have xterm installed for shooting a client window to a workstation, or to simply make resize available. Nevertheless...
+
+
 fnUsage()
 {
     optFormat=ansi; fnFormat;
@@ -139,7 +143,7 @@ fnDebug()
 
 fnMetadata()
 {
-resize 2>&1 > /dev/null;
+resize > /dev/null 2>&1;
 echo -e "#_# BEGIN REPORT";
 
 echo -e "$otagBold== Server Time at start: ==$ctagBold";
