@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.4";
+strVersion="0.5";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
@@ -67,20 +67,27 @@ fnUsage()
     echo -en "$otagBold \bCommand line arguments:\n\n$ctagBold";
     echo -en "\t-f --format [format]\n";
     echo -en "\t\tFormat headings with the addition of bold markup for use in ticketing system. \n\n";
-    echo -en "\t$otagBold \bValid options:$ctagBold\n";
-    echo -en "\t\thtml - format headings with html bold tags\n";
+    echo -en "\t\t$otagBold \bValid options:$ctagBold\n";
+    echo -en "\t\t html - format headings with html bold tags\n";
     echo -en "\t\t bbcode - format headings with bbcode bold tags\n";
     echo -en "\t\t ansi - [DEFAULT] format headings with ansi bold tags {for terminals and \n";
     echo -en "\t\t richtext. This help screen always in ANSI format.}\n\n";
-    echo -en "\t-p --path [path] explicitly set path to run from (it will identify the mount \n"
-    echo -en "\t\t hosting the specified directory and run from that mount point.";
-    echo -en "\t\t\n\n"
+    echo -en "\t-p --path [path] explicitly set path to run from (it will identify the mount \n";
+    echo -en "\t\t hosting the specified directory and run from that mount point. Mutually \n";
+    echo -en "\t\t exclusive with the -A | --alt-root option.\n";
+    echo -en "\t\t\n\n";
+    echo -en "\t-A --alt-root - treat the specified directory as an alternate root; in other words\n";
+    echo -en "\t\t report the top disk consumers from the specified point, deeper; do not check for\n";
+    echo -en "\t\t the actual mount point. Musually exclusive with --path option. This option is very \n";
+    echo -en "\t\t when used in combination of a bind mount of / if you suspect mounts are hiding large\n";
+    echo -en "\t\t disk consumers from view.";
+    echo -en "\t\t\n\n";
     echo -en "\t-l --limit [number]\n";
     echo -en "\t\t Report limited to top [number] largest files for each report section [default=20]\n\n";
     echo -en "\t-t --timeout [duration] set a timeout for each section of the report. For \n";
     echo -en "\t\t example, 60 default time unit is seconds so this would timeout after 60 seconds,\n";
     echo -en "\t\t 30s (for a 30 second timeout), 15m (timeout after 15 minutes), 2h (timeout after\n";
-    echo -en "\t\t2 hours). Accepts same values as _timeout_ command. Please note that specifying a \n";
+    echo -en "\t\t 2 hours). Accepts same values as _timeout_ command. Please note that specifying a \n";
     echo -en "\t\t timeout will result in incomplete and likely inaccurate and misleading results.\n\n   ";
     echo -en "\t-o --skipold skip report of files aged over 30 days \n\n";
     echo -en "\t-d --skipdir skip report of largest directories\n\n";
@@ -89,11 +96,12 @@ fnUsage()
     echo -en "\t-f --skipfiles skip report of largest files\n\n";
     echo -en "\t-t --temp [directory] Specify an an alternate temp directory when /tmp is too full for temp\n";
     echo -en "\t\t files to allow report generation.\n\n";
+    echo -en "\t-v --version display the version number then exit.\n\n"
     echo -en "Please note: the Top [number] Directories report module includes the \"total\" size. This is intentional.\n";
     echo -en "This script can only access files that you have access to; either use sudo or root \n";
     echo -en "to execute it. You could alternatively chmod the script with suid rights, but that may be a\n";
     echo -en "security risk in finance, medical, and government environments by revealing confidential\n";
-    echo -en "filenames to unprivileged users. Choose to suid with care.";
+    echo -en "filenames to unprivileged users. Choose to suid with care.\n";
     echo -e "\n";
 } # end of help screen
 
@@ -282,39 +290,66 @@ while [ "$1" != "" ] ; do \
                     if [[ ! -d "$strTemp" ]] ; then \
                         echo -e "\a\n$otagBold $otagRevRed>>> \t \bSpecified temp directory "$strTemp" does not exist. Please check and correct the path.$ctagBold";
                         exit 1;
+                        echo -e "Your command line: \n";
+                        echo -e "\t $cmdLine";
                     fi;
                     fnSetTemp;
                     ;;
-    * )             echo -en "$otagBold \n\tI couldn't understand your command. Please note if you specified a command with spaces \n"
+    -A | --alt-root ) shift;
+                    strAltRoot="$1";
+                    if [[ ! -d "$strAltRoot" ]] ; then \
+                        echo -e "\a\n$strAltRoot does not exist. Please check the path you specified.";
+                        exit 1;
+                    fi;
+                    ;;
+    -V | --version )
+                    echo "topdiskconsumer version $strVersion.";
+                    exit 0;
+                    ;;
+
+    * )
+                    echo -en "$otagBold \n\tI couldn't understand your command. Please note if you specified a command with spaces \n"
                     echo -e "\t \or extended ASCII, you will need to escape those characters or use quotes around the path.\n$ctagBold";
                     fnUsage;
                     exit 1
+                    ;;
   esac ;
   shift ;
 done;
 
-# find the mount point:
-if [[ ! -v optPath ]]; then \
-    $dbgEcho "optPath is not set, so setting path automagically."
-    $dbgEcho "Current working directory = $PWD"
-        strFsMount="$(stat --format="%m" "$PWD")";
-        # find the device behind the mount point:
-        strFsDev="$(findmnt -n --output=SOURCE --target="$strFsMount")";
-        $dbgEcho "strFsDev=$strFsDev";
-        $dbgEcho "strFsMount=$strFsMount";
-        $dbgSleep 5;
+# find the mount point if strAltRoot is not set, otherise set optPath to strAltRoot:
+if [[ -v strAltRoot ]]; then \
+  # if both --alt-root and --path are set, return error and quit.
+  $dbgEcho "--alt-root specified, checking if --path was also set.";
+  if [[ -v optPath ]]; then \
+    echo "--alt-root and --path are mutually exclusive.";
+    exit 1;
+  fi;
+  optPath="$strAltRoot";
+  strFsMount="$strAltRoot";
 else \
-    if [[ ! -d "$optPath" ]]; then \
-        echo -e "You specified \"$optPath\" which is not extant.";
-        $dbgSleep 5;
-        fnUsage;
-        exit 1;
+    if [[ ! -v optPath ]]; then \
+        $dbgEcho "optPath is not set, so setting path automagically."
+        $dbgEcho "Current working directory = $PWD"
+            strFsMount="$(stat --format="%m" "$PWD")";
+            # find the device behind the mount point:
+            strFsDev="$(findmnt -n --output=SOURCE --target="$strFsMount")";
+            $dbgEcho "strFsDev=$strFsDev";
+            $dbgEcho "strFsMount=$strFsMount";
+            $dbgSleep 5;
     else \
-        $dbgEcho "You specified the path \"$optPath\", which is extant. OK.";
-        strFsMount="$(stat --format="%m" "$optPath")";
-        # find the device behind the mount point:
-        strFsDev="$(findmnt -n --output=SOURCE --target="$strFsMount")";
-        $dbgEcho "The filesystem behind \"$optPath\" is \"$strFsMount\"; running from $strFsMount.";
+        if [[ ! -d optPath ]]; then \
+            echo -e "You specified \"$optPath\" which is not extant.";
+            $dbgSleep 5;
+            fnUsage;
+            exit 1;
+        else \
+            $dbgEcho "You specified the path \"$optPath\", which is extant. OK.";
+            strFsMount="$(stat --format="%m" "$optPath")";
+            # find the device behind the mount point:
+            strFsDev="$(findmnt -n --output=SOURCE --target="$strFsMount")";
+            $dbgEcho "The filesystem behind \"$optPath\" is \"$strFsMount\"; running from $strFsMount.";
+        fi;
     fi;
 fi;
 
