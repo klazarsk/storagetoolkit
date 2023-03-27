@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.666666";
+strVersion="0.6";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
