@@ -242,7 +242,7 @@ echo -e "\n\n#_# END REPORT";
 fnSetTemp()
 {
 # Is there enough space on the specified --temp directory for sort to run?
-if [ $(df --output=avail $strTemp | grep -v Avail) -lt  100000 ] ; then \
+if [ $(df --output=avail $strTemp | sed '$!d') -lt  100000 ] ; then \
     if [[ -v TMPDIR ]]; then echo "TMPDIR Already set, backing it up."; strBkTMPDIR="$TMPDIR"; fi;
     echo -e "\a$otagRed\nThere may not be enough space in $otagBold \b$strTemp \b$ctagBold \b$otagRed for $otagBold \bsort$ctagBold \b$otagRed to complete; there is only $(df -h --output=avail $strTemp | grep -v Avail) free; please choose a different location. $ctagNc" ;
     echo -e "\nThe script will continue after a 15-second pause but the reports may be incomplete.  ";
