@@ -4,7 +4,7 @@
 
 This is a draft of the documentation; among further refinements will be documentation updates. This is simply a copy and paste of the help screen:
 
-topdiskconsumer  -- Top Disk Consumer Report [version 0.4]
+topdiskconsumer  -- Top Disk Consumer Report [version 0.5]
 
 This script reports on the top disk consumers to help identify where cleanup is required.
 
@@ -97,7 +97,7 @@ under live databases on production servers.
 
 After discussion with a colleague and mulling it over, as a solution to mitigate risk but also allow cleanup, I've decided provide a config file spec to allow for automated cleanup while seeking to avert gross mis-use of the utility by junior administrators. This will allow for usage of the script in financial institutions hosted at companies where support are restricted to "read-only" actions while also enabling automated cleanup on workstations and dev/staging/preprod environments.
 
-ETA: by 2Q2023
+ETA: by end of 2Q2023
 
 # Roadmap 
 
