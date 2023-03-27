@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.5";
+strVersion="0.666666";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
@@ -42,6 +42,7 @@ optSkipOld=0;
 optSkipUnlinked=0;
 unset cmdTimeout;
 unset optPath;
+unset strAltRoot;
 
 
 # Find out if we have new or old sort
@@ -276,7 +277,7 @@ while [ "$1" != "" ] ; do \
                     ;;
     -o | --skipold ) optSkipOld=1;
                     ;;
-    -p | --path    ) shift;
+    -p | --path ) shift;
                      optPath="$1";
                     ;;
     -t | --timeout ) shift;
@@ -325,14 +326,14 @@ done;
 if [[ -v strAltRoot ]]; then \
   # if both --alt-root and --path are set, return error and quit.
   $dbgEcho "--alt-root specified, checking if --path was also set.";
-  if [[ -v optPath ]]; then \
+  if [[  -v optPath ]]; then \
     echo "--alt-root and --path are mutually exclusive.";
     exit 1;
   fi;
   optPath="$strAltRoot";
   strFsMount="$strAltRoot";
 else \
-    if [[ ! -v optPath ]]; then \
+    if [ ! -v optPath ]; then \
         $dbgEcho "optPath is not set, so setting path automagically."
         $dbgEcho "Current working directory = $PWD"
             strFsMount="$(stat --format="%m" "$PWD")";
@@ -342,8 +343,8 @@ else \
             $dbgEcho "strFsMount=$strFsMount";
             $dbgSleep 5;
     else \
-        if [[ ! -d optPath ]]; then \
-            echo -e "You specified \"$optPath\" which is not extant.";
+        if [ ! -d "$optPath" ]; then \
+            echo -e "\n\n\t\tYou specified \"$optPath\" which is not extant.\n\n";
             $dbgSleep 5;
             fnUsage;
             exit 1;
