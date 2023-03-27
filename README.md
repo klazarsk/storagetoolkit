@@ -77,6 +77,9 @@ filenames to unprivileged users. Choose to suid with care.
 - [ ] needs a man page
 - [ ] needs an rpm (will do this after writing the man pages)
 
+P1 defects:
+- [ ] largest deleted open files: Does not work on Ubuntu 20: listing open file handles doesn't work on Ubuntu (am currently in Dallas for Red Hat tech exchange will review issue on my Ubuntu VMs week starting Feb 05). Cause: lsof distributed with Ubuntu displays different format by default. Plan to reimplement test on RHEL, Ubuntu, and (OpenSUSE) Tumbleweed. Previously tested on RHEL and older release of Tumbleweed and originally developed one-liner on Tumbleweed. 
+
 
 # Red Hat Sysadmin blog
 
@@ -84,18 +87,18 @@ https://www.redhat.com/sysadmin/free-storage-space-linux
 
 # Important Note:
 
-It's been suggested that this tool be enhanced to clean up .local/cache and other temp file locations.
+Re: automated cleanup 
 
 I hear your requests and suggestions, and while I agree in principle, I've seen too many junior admins mis-
 apply "swiss army knife" tools resulting in storage disasters, including completely kicking storage out from
 under live databases on production servers.
 
-This tool is not intended to be an analog to the proprietary tool "ccleaner"
+## Update: 
 
-I'm intending this tool to be used as a _read-only_ tool for aid in diagnosing issues, and with the suggestion
-of enabling the suid bit, it would be a mistake to allow to go ahead and assume it is safe to clean anything,
-even if it is just "/tmp' and '/home/*/./cache' and '/home/*/.local'; there are numerous security concerns,
-risk of interrupting production services, or depending on silly user tricks, completely destroying a system.
+After discussion with a colleague and mulling it over, as a solution to mitigate risk but also allow cleanup, I've decided provide a config file spec to allow for automated cleanup while seeking to avert gross mis-use of the utility by junior administrators. This will allow for usage of the script in financial institutions hosted at companies where support are restricted to "read-only" actions while also enabling automated cleanup on workstations and dev/staging/preprod environments.
 
-As such this tool will remain a read-only diagnostic aid to guide cleanup, per the UNIX principle of one tool
-one job.
+ETA: by 2Q2023
+
+# Roadmap 
+
+Coming March 2023
