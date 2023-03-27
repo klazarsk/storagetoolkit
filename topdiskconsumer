@@ -359,7 +359,7 @@ fi;
 
 # Is there enough space for sort to run?
 if [[ ! -v strTemp ]]; then \
-    if [ $(df --output=avail /tmp | grep -v Avail) -lt  100000 ] ; then \
+    if [ $(df --output=avail /tmp | sed '$!d') -lt  100000 ] ; then \
         echo -e "\a\a$otagRed\nThere may not be enough space in /tmp for $otagBold \bsort$ctagBold \b$otagRed \b\bto complete; there is only $(df -h --output=avail /tmp | grep -v Avail) free; consider leveraging the --temp option. $ctagNc" ;
         echo -e "\nThe script will continue after a 15-second pause but the reports may be incomplete.";
         sleep 15;
