@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.6";
+strVersion="0.7";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
@@ -39,6 +39,8 @@ optSkipDir=0;
 optSkipFiles=0;
 optSkipMeta=0;
 optSkipOld=0;
+optSkipNew=0;
+optSkipVeryNew=0;
 optSkipUnlinked=0;
 unset cmdTimeout;
 unset optPath;
@@ -210,6 +212,30 @@ if [ $bNewSort == 1 ];
 }
 
 
+fnLargestNewFiles()
+{
+echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ] Newer Than 3 Days: ==$ctagBold";
+if [ $bNewSort == 1 ];
+    then \
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_race -type f -mtime -3 -exec du -h "{}" + 2>&1 | sort -rh | head -$intNumFiles;
+    else \
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_bNewSortrace -type f -mtime -3 -exec du "{}" + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
+    fi;
+}
+
+
+fnLargestVeryNewFiles()
+{
+echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ] Newer Than 24 hours: ==$ctagBold";
+if [ $bNewSort == 1 ];
+    then \
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_race -type f -mtime -1 -exec du -h "{}" + 2>&1 | sort -rh | head -$intNumFiles;
+    else \
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_bNewSortrace -type f -mtime -1 -exec du "{}" + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
+    fi;
+}
+
+
 fnLargestUnlinked()
 {
 echo -e "\n$otagBold== $intNumFiles Largest Deleted Files on [ $strFsMount ] With Open Handles: ==$ctagBold";
@@ -275,6 +301,8 @@ while [ "$1" != "" ] ; do \
                     ;;
     -m | --skipmeta ) optSkipMeta=1;
                     ;;
+    -n | --skipnew ) optSkipNew=1;
+                    ;;
     -o | --skipold ) optSkipOld=1;
                     ;;
     -p | --path ) shift;
@@ -299,6 +327,8 @@ while [ "$1" != "" ] ; do \
                         echo -e "\t $cmdLine";
                     fi;
                     fnSetTemp;
+                    ;;
+    -v | --skipverynew ) optSkipVeryNew=1;
                     ;;
     -A | --alt-root ) shift;
                     strAltRoot="$1";
@@ -385,6 +415,14 @@ if [ $optSkipOld -ne 1 ]; then \
     fnLargestOldFiles;
     else $dbgEcho "Skipping old files...";
 fi;
+if [ $optSkipNew -ne 1 ]; then \
+    fnLargestNewFiles;
+    else $dbgEcho "Skipping new files...";
+fi;
+if [ $optSkipVeryNew -ne 1 ]; then \
+    fnLargestVeryNewFiles;
+    else $dbgEcho "Skipping very new files...";
+fi;
 if [ $optSkipUnlinked -ne 1 ] ; then \
     fnLargestUnlinked;
     else $dbgEcho "Skipping open handles to unlinked files";
@@ -398,4 +436,3 @@ if [[ -v strBkTMPDIR ]]; then export TMPDIR="$strBkTMPDIR"; else \
 fi;
 
 exit 0;
-
