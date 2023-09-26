@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
-strVersion="0.7";
+strVersion="0.8";
 cmdLine="$0 $@  ";
 dbgEcho="false";
 dbgSleep="false";
@@ -39,8 +39,9 @@ optSkipDir=0;
 optSkipFiles=0;
 optSkipMeta=0;
 optSkipOld=0;
-optSkipNew=0;
-optSkipVeryNew=0;
+optSkipNew_7days=0;
+optSkipNew_3days=0;
+optSkipNew_24hours=0;
 optSkipUnlinked=0;
 unset cmdTimeout;
 unset optPath;
@@ -212,7 +213,19 @@ if [ $bNewSort == 1 ];
 }
 
 
-fnLargestNewFiles()
+fnLargestFiles_7days()
+{
+echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ] Newer Than 7 Days: ==$ctagBold";
+if [ $bNewSort == 1 ];
+    then \
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_race -type f -mtime -7 -exec du -h "{}" + 2>&1 | sort -rh | head -$intNumFiles;
+    else \
+        $cmdTimeout find "$strFsMount" -mount -ignore_readdir_bNewSortrace -type f -mtime -7 -exec du "{}" + 2>&1 | sort -rnk1,1 | head -$intNumFiles | awk 'BEGIN{ CONVFMT="%.2f";}{ $1=( $1 / 1024 )"M"; print; }' | column -t;
+    fi;
+}
+
+
+fnLargestFiles_3days()
 {
 echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ] Newer Than 3 Days: ==$ctagBold";
 if [ $bNewSort == 1 ];
@@ -224,7 +237,7 @@ if [ $bNewSort == 1 ];
 }
 
 
-fnLargestVeryNewFiles()
+fnLargestFiles_24hours()
 {
 echo -e "\n$otagBold== $intNumFiles Largest Files on [ $strFsMount ] Newer Than 24 hours: ==$ctagBold";
 if [ $bNewSort == 1 ];
@@ -301,7 +314,7 @@ while [ "$1" != "" ] ; do \
                     ;;
     -m | --skipmeta ) optSkipMeta=1;
                     ;;
-    -n | --skipnew ) optSkipNew=1;
+    -n | --optSkipNew_7days ) optSkipNew_7days=1;
                     ;;
     -o | --skipold ) optSkipOld=1;
                     ;;
@@ -328,8 +341,10 @@ while [ "$1" != "" ] ; do \
                     fi;
                     fnSetTemp;
                     ;;
-    -v | --skipverynew ) optSkipVeryNew=1;
+    -v | --optSkipNew_3days ) optSkipNew_3days=1;
                     ;;
+    -w | --optSkipNew_7days ) optSkipNew_7days=1;
+                    ;;                   
     -A | --alt-root ) shift;
                     strAltRoot="$1";
                     if [[ ! -d "$strAltRoot" ]] ; then \
@@ -415,12 +430,16 @@ if [ $optSkipOld -ne 1 ]; then \
     fnLargestOldFiles;
     else $dbgEcho "Skipping old files...";
 fi;
-if [ $optSkipNew -ne 1 ]; then \
-    fnLargestNewFiles;
+if [ $optSkipNew_7days -ne 1 ]; then \
+    fnLargestFiles_7days;
     else $dbgEcho "Skipping new files...";
 fi;
-if [ $optSkipVeryNew -ne 1 ]; then \
-    fnLargestVeryNewFiles;
+if [ $optSkipNew_3days -ne 1 ]; then \
+    fnLargestFiles_3days;
+    else $dbgEcho "Skipping new files...";
+fi;
+if [ $optSkipNew_24hours -ne 1 ]; then \
+    fnLargestFiles_24hours;
     else $dbgEcho "Skipping very new files...";
 fi;
 if [ $optSkipUnlinked -ne 1 ] ; then \
